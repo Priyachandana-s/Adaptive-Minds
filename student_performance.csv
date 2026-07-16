@@ -1,0 +1,11 @@
+quiz_score,accuracy,time_spent,difficulty
+35,30,10,Easy
+40,45,15,Easy
+50,50,20,Easy
+60,55,25,Medium
+65,60,30,Medium
+70,70,35,Medium
+75,75,40,Medium
+80,80,45,Hard
+90,85,50,Hard
+95,95,60,Hard

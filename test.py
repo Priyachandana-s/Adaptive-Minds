@@ -1,0 +1,1 @@
+print("adaptive minds started")
