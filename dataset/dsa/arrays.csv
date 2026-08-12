@@ -1,0 +1,35 @@
+Subject,Topic,Difficulty,Question,Option1,Option2,Option3,Option4,CorrectAnswer,Explanation
+Data Structures,Arrays,Easy,What is an array?,A collection of elements stored in contiguous memory locations,A collection of linked nodes,A hierarchical data structure,A collection of key-value pairs,A collection of elements stored in contiguous memory locations,An array stores elements of the same data type in contiguous memory locations.
+Data Structures,Arrays,Easy,What is the index of the first element in an array in Java?,0,1,-1,Depends on the array size,0,Java uses zero-based indexing so the first element is at index 0.
+Data Structures,Arrays,Easy,Which of the following is an advantage of arrays?,Constant-time indexed access,Dynamic size,No memory limitation,Automatic sorting,Constant-time indexed access,Arrays allow direct access to elements using their index in O(1) time.
+Data Structures,Arrays,Easy,How are array elements stored in memory?,Randomly,Contiguously,As linked nodes,In separate memory blocks,Contiguously,Array elements are stored in consecutive memory locations.
+Data Structures,Arrays,Easy,Can an array store different data types together?,Yes,No,Only in C,Only in Python,No,A standard array stores elements of the same data type.
+Data Structures,Arrays,Easy,What is the time complexity of accessing an element by index in an array?,O(1),O(log n),O(n),O(n²),O(1),Arrays support direct indexed access in constant time.
+Data Structures,Arrays,Easy,Which of the following is NOT a characteristic of an array?,Fixed size,Contiguous memory,Random access,Dynamic resizing,Dynamic resizing,Standard arrays have a fixed size once created.
+Data Structures,Arrays,Medium,What is the worst-case time complexity of inserting an element at the beginning of an array?,O(1),O(log n),O(n),O(n²),O(n),All existing elements must be shifted one position to the right.
+Data Structures,Arrays,Medium,What is the worst-case time complexity of deleting the first element of an array?,O(1),O(log n),O(n),O(n²),O(n),All remaining elements must be shifted one position to the left.
+Data Structures,Arrays,Medium,Which searching algorithm requires the array to be sorted before searching?,Linear Search,Binary Search,Depth First Search,Breadth First Search,Binary Search,Binary Search works correctly only on sorted arrays.
+Data Structures,Arrays,Medium,What is the worst-case time complexity of Linear Search?,O(1),O(log n),O(n),O(n²),O(n),The element may be at the last position or may not exist in the array.
+Data Structures,Arrays,Medium,Which operation may require shifting multiple elements in an array?,Access by index,Insertion,Reading an element,Updating an element,Insertion,Elements are shifted to make space for the new element.
+Data Structures,Arrays,Medium,What is the valid index range for an array of size n?,1 to n,0 to n,0 to n-1,1 to n-1,0 to n-1,Arrays with n elements have indices from 0 to n−1.
+Data Structures,Arrays,Hard,Which algorithm finds the maximum sum contiguous subarray in O(n) time?,Merge Sort,Kadane's Algorithm,Quick Sort,Binary Search,Kadane's Algorithm,Kadane's Algorithm efficiently computes the maximum subarray sum in linear time.
+Data Structures,Arrays,Hard,Which technique is commonly used to answer multiple range sum queries efficiently?,Bubble Sort,Prefix Sum,Linear Search,Hashing,Prefix Sum,Prefix sums allow range sum queries to be answered in O(1) after preprocessing.
+Data Structures,Arrays,Easy,Which data structure stores elements in contiguous memory locations?,Array,Linked List,Stack,Queue,Array,Arrays store elements in consecutive memory locations.
+Data Structures,Arrays,Easy,Can array elements be accessed directly using their index?,Yes,No,Only in sorted arrays,Only in dynamic arrays,Yes,Arrays support direct access through indexing.
+Data Structures,Arrays,Medium,Which of the following is an application of arrays?,Implementing matrices,Storing hierarchical data,Representing graphs only,Managing recursion,Implementing matrices,Two-dimensional arrays are commonly used to represent matrices.
+Data Structures,Arrays,Medium,What happens if you access an index outside the bounds of an array in Java?,Returns 0,Returns null,ArrayIndexOutOfBoundsException,Compiler Error,ArrayIndexOutOfBoundsException,Java throws an exception when an invalid index is accessed.
+Data Structures,Arrays,Hard,Which algorithm rotates an array in O(n) time and O(1) extra space?,Bubble Sort,Reversal Algorithm,Insertion Sort,Selection Sort,Reversal Algorithm,The reversal algorithm performs array rotation efficiently without extra memory.
+Data Structures,Arrays,Easy,Which of the following best describes the size of a standard array after it is created?,Can increase automatically,Can decrease automatically,Remains fixed,Cannot store elements,Remains fixed,The size of a standard array is fixed once it is created.
+Data Structures,Arrays,Easy,Which operator is used to access an element of an array in Java?,(),{},[],<>,[],Square brackets are used with the index to access array elements.
+Data Structures,Arrays,Medium,Which of the following is a disadvantage of arrays?,Fast access by index,Cache-friendly storage,Fixed size,Easy traversal,Fixed size,Arrays cannot grow or shrink after creation.
+Data Structures,Arrays,Medium,If an array has 10 elements, what is the index of the last element?,10,9,8,11,9,For an array of size n, the last index is n−1.
+Data Structures,Arrays,Hard,Which preprocessing technique computes cumulative sums so that range sum queries can be answered efficiently?,Sliding Window,Prefix Sum,Two Pointers,Recursion,Prefix Sum,Prefix Sum stores cumulative sums to answer range queries quickly.
+Data Structures,Arrays,Easy,Which of the following is the correct way to declare an integer array in Java?,int arr[] = new int[5];,array<int> arr;,int arr = new array(5);,int[] = arr;,int arr[] = new int[5];,This is a valid syntax for declaring and creating an integer array in Java.
+
+Data Structures,Arrays,Medium,Which traversal method visits each element of an array exactly once?,Linear Traversal,Binary Traversal,Depth First Traversal,Breadth First Traversal,Linear Traversal,Linear traversal processes every element sequentially from start to end.
+
+Data Structures,Arrays,Medium,Which search algorithm works on both sorted and unsorted arrays?,Binary Search,Linear Search,Jump Search,Interpolation Search,Linear Search,Linear Search checks elements one by one and does not require sorting.
+
+Data Structures,Arrays,Hard,Which algorithm is commonly used to merge two sorted arrays into a single sorted array?,Merge Algorithm,Bubble Sort,Selection Sort,Binary Search,Merge Algorithm,The merge step of Merge Sort efficiently combines two sorted arrays into one sorted array.
+
+Data Structures,Arrays,Hard,Which of the following techniques is commonly used to solve maximum subarray problems in linear time?,Kadane's Algorithm,Merge Sort,Binary Search,Heap Sort,Kadane's Algorithm,Kadane's Algorithm finds the maximum sum contiguous subarray in O(n) time.

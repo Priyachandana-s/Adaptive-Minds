@@ -1,4 +1,6 @@
+import Home from "./components/Home";
 import { useEffect, useState } from "react";
+
 import Quiz from "./components/Quiz";
 function App() {
 
@@ -6,6 +8,7 @@ function App() {
   const [topics, setTopics] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedTopic, setSelectedTopic] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("");
   const [quizStarted, setQuizStarted] = useState(false);
 
   useEffect(() => {
@@ -31,61 +34,29 @@ function App() {
 }, [selectedSubject]);
 
    if (quizStarted) {
-    return <Quiz />;
+    return (
+  <Quiz
+    selectedSubject={selectedSubject}
+    selectedTopic={selectedTopic}
+    selectedDifficulty={selectedDifficulty}
+  />
+);
   }
   return (
-    <div>
-      <h1>Adaptive Minds</h1>
-      <h2>AI Based Adaptive Learning Platform</h2>
+ <Home
+  subjects={subjects}
+  topics={topics}
+  selectedSubject={selectedSubject}
+  setSelectedSubject={setSelectedSubject}
+  selectedTopic={selectedTopic}
+  setSelectedTopic={setSelectedTopic}
 
+  selectedDifficulty={selectedDifficulty}
+  setSelectedDifficulty={setSelectedDifficulty}
 
-      <h3>Subjects</h3>
-
-<select
-  value={selectedSubject}
-  onChange={(e) => {
-    setSelectedSubject(e.target.value);
-    setSelectedTopic("");
-  }}
->
-  <option value="">Select Subject</option>
-
-  {subjects.map((subject) => (
-    <option
-      key={subject.id}
-      value={subject.id}
-    >
-      {subject.name}
-    </option>
-  ))}
-</select>
-
-<h3>Topics</h3>
-
-<select
-  value={selectedTopic}
-  onChange={(e) => setSelectedTopic(e.target.value)}
->
-  <option value="">Select Topic</option>
-
-  {topics.map((topic) => (
-    <option
-      key={topic.id}
-      value={topic.id}
-    >
-      {topic.topic_name}
-    </option>
-  ))}
-</select>
-
-<br /><br />
-
-<button onClick={() => setQuizStarted(true)}>
-  Start Quiz
-</button>
-
-    </div>
-  );
+  startQuiz={() => setQuizStarted(true)}
+/>
+);
 }
 
 export default App;

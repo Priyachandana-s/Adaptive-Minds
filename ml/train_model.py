@@ -18,5 +18,6 @@ model.fit(X, y)
 
 prediction = model.predict([[92,90,55]])
 
+
 print("Prediction:", prediction[0])
 
