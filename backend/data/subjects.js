@@ -12,5 +12,4 @@ const subjects = [
         name: "Operating Systems"
     }
 ];
-
 module.exports = subjects;

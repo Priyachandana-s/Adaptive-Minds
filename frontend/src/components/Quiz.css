@@ -71,3 +71,37 @@
     background:#312e81;
 
 }
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background-color: #e5e7eb;
+  border-radius: 10px;
+  margin: 15px 0 25px 0;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #4338ca;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+.option {
+  display: block;
+  padding: 12px 15px;
+  margin: 10px 0;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.option:hover {
+  border-color: #4338ca;
+}
+
+.option.selected {
+  border-color: #4338ca;
+  background-color: #eef2ff;
+  font-weight: 600;
+}

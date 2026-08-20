@@ -7,14 +7,19 @@ router.post("/predict", (req, res) => {
 
     const { quizScore, accuracy, timeSpent } = req.body;
 
+    console.log("Prediction Input:", quizScore, accuracy, timeSpent);
+
 const pythonFile = path.join(__dirname, "../../ml/load_model.py");
 
-const python = spawn("python", [
-    pythonFile,
-    quizScore,
-    accuracy,
-    timeSpent
-]);
+const python = spawn(
+    path.join(__dirname, "../../venv/Scripts/python.exe"),
+    [
+        pythonFile,
+        quizScore,
+        accuracy,
+        timeSpent
+    ]
+);
     python.stderr.on("data", (data) => {
     console.log("Python Error:", data.toString());
 });
