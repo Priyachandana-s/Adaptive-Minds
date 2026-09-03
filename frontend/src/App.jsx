@@ -1,62 +1,57 @@
-import Home from "./components/Home";
-import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Quiz from "./components/Quiz";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import SemesterSelection from "./pages/SemesterSelection";
+import Dashboard from "./pages/Dashboard";
+import SubjectPage from "./pages/SubjectPage";
+import NotesPage from "./pages/NotesPage";
+import QuizPage from "./pages/QuizPage";
+
 function App() {
-
-  const [subjects, setSubjects] = useState([]);
-  const [topics, setTopics] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedTopic, setSelectedTopic] = useState("");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("");
-  const [quizStarted, setQuizStarted] = useState(false);
-
-  useEffect(() => {
-
-  fetch("http://localhost:5000/subjects")
-    .then((response) => response.json())
-    .then((data) => {
-      setSubjects(data);
-    });
-
-}, []);
-
-  useEffect(() => {
-
-  if (selectedSubject === "") return;
-
-  fetch(`http://localhost:5000/topics?subjectId=${selectedSubject}`)
-    .then((response) => response.json())
-    .then((data) => {
-      setTopics(data);
-    });
-
-}, [selectedSubject]);
-
-   if (quizStarted) {
-    return (
-  <Quiz
-    selectedSubject={selectedSubject}
-    selectedTopic={selectedTopic}
-    selectedDifficulty={selectedDifficulty}
-  />
-);
-  }
   return (
- <Home
-  subjects={subjects}
-  topics={topics}
-  selectedSubject={selectedSubject}
-  setSelectedSubject={setSelectedSubject}
-  selectedTopic={selectedTopic}
-  setSelectedTopic={setSelectedTopic}
+    <BrowserRouter>
+      <Routes>
 
-  selectedDifficulty={selectedDifficulty}
-  setSelectedDifficulty={setSelectedDifficulty}
+        <Route
+          path="/"
+          element={<Login />}
+        />
 
-  startQuiz={() => setQuizStarted(true)}
-/>
-);
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="/semester"
+          element={<SemesterSelection />}
+        />
+
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
+
+        <Route
+          path="/subject/:subjectName"
+          element={<SubjectPage />}
+        />
+
+        <Route
+          path="/notes/:subjectName"
+          element={<NotesPage />}
+        />
+
+        {/* Quiz Integration */}
+        <Route
+          path="/quiz/:subjectName"
+          element={<QuizPage />}
+        />
+
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

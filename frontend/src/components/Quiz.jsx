@@ -1,11 +1,14 @@
 import "./Quiz.css";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Quiz({
   selectedSubject,
   selectedTopic,
   selectedDifficulty,
 }) {
+  const navigate = useNavigate();
+
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
@@ -15,25 +18,36 @@ function Quiz({
   const [showReview, setShowReview] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Timer
   const [timeSpent, setTimeSpent] = useState(0);
 
-  // Load questions
+  // =========================================================
+  // LOAD QUESTIONS
+  // =========================================================
+
   useEffect(() => {
     fetch(
       `http://localhost:5000/csvquestions?subject=${selectedSubject}&topic=${selectedTopic}&difficulty=${selectedDifficulty}`
     )
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load questions");
+        }
+
+        return response.json();
+      })
       .then((data) => {
         setQuestions(data);
       })
       .catch((error) => {
         console.error("Error loading questions:", error);
+        setErrorMessage("Unable to load quiz questions.");
       });
   }, [selectedSubject, selectedTopic, selectedDifficulty]);
 
-  // Timer
+  // =========================================================
+  // TIMER
+  // =========================================================
+
   useEffect(() => {
     if (questions.length === 0 || quizCompleted) {
       return;
@@ -46,11 +60,35 @@ function Quiz({
     return () => clearInterval(timer);
   }, [questions.length, quizCompleted]);
 
+  // =========================================================
+  // LOADING
+  // =========================================================
+
   if (questions.length === 0) {
-    return <h2>Loading Questions...</h2>;
+    return (
+      <div className="quiz-page">
+        <div className="quiz-loading">
+          <div className="quiz-loading-icon">🧠</div>
+
+          <h2>Loading Questions...</h2>
+
+          <p>Preparing your personalized assessment</p>
+
+          {errorMessage && (
+            <p className="quiz-error-text">
+              {errorMessage}
+            </p>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const currentQuestion = questions[currentIndex];
+
+  // =========================================================
+  // SCORE
+  // =========================================================
 
   function calculateScore() {
     let score = 0;
@@ -64,21 +102,9 @@ function Quiz({
     return score;
   }
 
-  function getPerformanceMessage(score) {
-    const percentage = (score / questions.length) * 100;
-
-    if (percentage === 100) {
-      return "Excellent performance! 🎯";
-    } else if (percentage >= 80) {
-      return "Great job! Keep it up! 👏";
-    } else if (percentage >= 60) {
-      return "Good effort! A little more practice will help. 👍";
-    } else if (percentage >= 40) {
-      return "Keep practicing. You are improving! 💪";
-    } else {
-      return "Don't worry. Keep learning and try again! 🌱";
-    }
-  }
+  // =========================================================
+  // FORMAT TIME
+  // =========================================================
 
   function formatTime(totalSeconds) {
     const minutes = Math.floor(totalSeconds / 60);
@@ -89,9 +115,158 @@ function Quiz({
     ).padStart(2, "0")}`;
   }
 
-  // =========================
+  // =========================================================
+  // SELECT ANSWER
+  // =========================================================
+
+  function handleOptionChange(option) {
+    setSelectedOption(option);
+    setErrorMessage("");
+
+    setAnswers((previousAnswers) => {
+      const updatedAnswers = [...previousAnswers];
+      updatedAnswers[currentIndex] = option;
+      return updatedAnswers;
+    });
+  }
+
+  // =========================================================
+  // SUBMIT QUIZ
+  // =========================================================
+
+  async function submitQuiz() {
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    /*
+      The current answer is already stored inside answers
+      through handleOptionChange().
+    */
+
+    const score = calculateScore();
+    const accuracy = Math.round(
+      (score / questions.length) * 100
+    );
+
+    try {
+      const response = await fetch(
+        "http://localhost:5000/predict",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            quizScore: accuracy,
+            accuracy: accuracy,
+            timeSpent: timeSpent,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Prediction request failed");
+      }
+
+      const data = await response.json();
+
+      setPrediction(
+        data.recommendation ||
+          data.prediction ||
+          "Medium"
+      );
+
+      setQuizCompleted(true);
+      setIsSubmitting(false);
+    } catch (error) {
+      console.error("Prediction Error:", error);
+
+      /*
+        Even if prediction API fails, the result page
+        should still appear.
+      */
+
+      let fallbackRecommendation = "Medium";
+
+      if (accuracy >= 80) {
+        fallbackRecommendation = "Hard";
+      } else if (accuracy < 50) {
+        fallbackRecommendation = "Easy";
+      }
+
+      setPrediction(fallbackRecommendation);
+      setQuizCompleted(true);
+      setIsSubmitting(false);
+    }
+  }
+
+  // =========================================================
+  // NEXT / PREVIOUS
+  // =========================================================
+
+  function handleNext() {
+    if (!selectedOption) {
+      setErrorMessage(
+        "Please select an answer before continuing."
+      );
+
+      return;
+    }
+
+    setErrorMessage("");
+
+    if (currentIndex < questions.length - 1) {
+      const nextIndex = currentIndex + 1;
+
+      setCurrentIndex(nextIndex);
+
+      setSelectedOption(
+        answers[nextIndex] || ""
+      );
+    } else {
+      submitQuiz();
+    }
+  }
+
+  function handlePrevious() {
+    if (currentIndex === 0) {
+      return;
+    }
+
+    const previousIndex = currentIndex - 1;
+
+    setCurrentIndex(previousIndex);
+
+    setSelectedOption(
+      answers[previousIndex] || ""
+    );
+
+    setErrorMessage("");
+  }
+
+  // =========================================================
+  // QUESTION NAVIGATION
+  // =========================================================
+
+  function goToQuestion(index) {
+    setCurrentIndex(index);
+
+    setSelectedOption(
+      answers[index] || ""
+    );
+
+    setErrorMessage("");
+  }
+
+  // =========================================================
   // RESULT PAGE
-  // =========================
+  // =========================================================
 
   if (quizCompleted && !showReview) {
     const finalScore = calculateScore();
@@ -101,344 +276,801 @@ function Quiz({
     );
 
     return (
-      <div className="quiz-container">
-        <h1 className="quiz-title">
-          🎉 Assessment Completed
-        </h1>
+      <div className="quiz-page">
 
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "25px",
-          }}
-        >
-          <h2>
-            Score: {finalScore} / {questions.length}
-          </h2>
+        <div className="result-card">
 
-          <h2 style={{ marginTop: "15px" }}>
-            Accuracy: {accuracy}%
-          </h2>
+          {/* RESULT HEADER */}
+          <div className="result-header">
 
-          <h2 style={{ marginTop: "15px" }}>
-            Time Spent: {formatTime(timeSpent)}
-          </h2>
+            <div className="result-icon">
+              🎉
+            </div>
 
-          <p
-            style={{
-              marginTop: "20px",
-              fontSize: "20px",
-            }}
-          >
-            {getPerformanceMessage(finalScore)}
-          </p>
+            <h1>
+              Assessment Completed
+            </h1>
 
-          <p
-            style={{
-              marginTop: "25px",
-              fontSize: "20px",
-            }}
-          >
-            🤖 AI Recommendation
-          </p>
+            <p>
+              Your quiz results are ready
+            </p>
 
-          <h2
-            style={{
-              color: "#4338ca",
-              marginTop: "15px",
-            }}
-          >
-            Recommended Level: {prediction}
-          </h2>
+          </div>
 
-          <button
-            className="next-btn"
-            style={{ marginTop: "25px" }}
-            onClick={() => setShowReview(true)}
-          >
-            Review Answers
-          </button>
+
+          {/* RESULT STATISTICS */}
+          <div className="result-stats">
+
+            <div className="result-stat">
+
+              <div className="stat-icon purple">
+                🏆
+              </div>
+
+              <div>
+                <span className="stat-label">
+                  Score
+                </span>
+
+                <strong>
+                  {finalScore} / {questions.length}
+                </strong>
+
+                <small>
+                  Questions Attempted
+                </small>
+              </div>
+
+            </div>
+
+
+            <div className="result-stat">
+
+              <div className="stat-icon green">
+                🎯
+              </div>
+
+              <div>
+                <span className="stat-label">
+                  Accuracy
+                </span>
+
+                <strong>
+                  {accuracy}%
+                </strong>
+
+                <small>
+                  Overall Performance
+                </small>
+              </div>
+
+            </div>
+
+
+            <div className="result-stat">
+
+              <div className="stat-icon violet">
+                🕐
+              </div>
+
+              <div>
+                <span className="stat-label">
+                  Time Spent
+                </span>
+
+                <strong>
+                  {formatTime(timeSpent)}
+                </strong>
+
+                <small>
+                  Total Quiz Time
+                </small>
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* AI RECOMMENDATION */}
+          <div className="recommendation-card">
+
+            <div className="recommendation-top">
+
+              <div className="recommendation-icon">
+                🤖
+              </div>
+
+              <div>
+                <h2>
+                  AI Recommendation
+                </h2>
+
+                <p>
+                  Based on your performance
+                </p>
+              </div>
+
+            </div>
+
+
+            <div className="recommendation-body">
+
+              <div className="recommendation-level-icon">
+                📈
+              </div>
+
+              <div className="recommendation-level">
+
+                <span>
+                  Recommended Level
+                </span>
+
+                <strong>
+                  {prediction}
+                </strong>
+
+              </div>
+
+              <div className="recommendation-message">
+
+                {prediction === "Hard" ? (
+                  <>
+                    <h3>
+                      You're ready for a challenge!
+                    </h3>
+
+                    <p>
+                      Try practicing hard level
+                      questions to strengthen your
+                      understanding and boost your
+                      confidence.
+                    </p>
+                  </>
+                ) : prediction === "Easy" ? (
+                  <>
+                    <h3>
+                      Let's strengthen the basics.
+                    </h3>
+
+                    <p>
+                      Practice easy level questions
+                      to build a stronger foundation
+                      before moving ahead.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3>
+                      Keep building your skills.
+                    </h3>
+
+                    <p>
+                      Continue practicing medium
+                      level questions to improve your
+                      understanding and confidence.
+                    </p>
+                  </>
+                )}
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* RESULT ACTIONS */}
+          <div className="result-actions">
+
+            <button
+              className="secondary-result-btn"
+              onClick={() => setShowReview(true)}
+            >
+              📋 Review Answers
+            </button>
+
+            <button
+              className="primary-result-btn"
+              onClick={() => navigate(-1)}
+            >
+              Back to Subject
+              <span>→</span>
+            </button>
+
+          </div>
+
         </div>
+
       </div>
     );
   }
 
-  // =========================
-  // ANSWER REVIEW PAGE
-  // =========================
+
+  // =========================================================
+  // ANSWER REVIEW
+  // =========================================================
 
   if (quizCompleted && showReview) {
     return (
-      <div className="quiz-container">
-        <h1 className="quiz-title">
-          📝 Answer Review
-        </h1>
+      <div className="quiz-page">
 
-        {questions.map((question, index) => {
-          const userAnswer = answers[index];
+        <div className="review-card">
 
-          const isCorrect =
-            userAnswer === question.CorrectAnswer;
+          <div className="review-header">
 
-          return (
-            <div
-              key={index}
-              style={{
-                marginTop: "25px",
-                padding: "20px",
-                border: "1px solid #ddd",
-                borderRadius: "10px",
-              }}
-            >
-              <h3>Question {index + 1}</h3>
+            <div>
+              <span className="review-badge">
+                Quiz Review
+              </span>
 
-              <p
-                style={{
-                  fontSize: "17px",
-                  marginTop: "10px",
-                }}
-              >
-                {question.Question}
-              </p>
+              <h1>
+                Review Your Answers
+              </h1>
 
-              <p
-                style={{
-                  marginTop: "15px",
-                  fontWeight: "bold",
-                  color: isCorrect ? "green" : "red",
-                }}
-              >
-                {isCorrect
-                  ? "✅ Correct"
-                  : "❌ Wrong"}
-              </p>
-
-              <p style={{ marginTop: "10px" }}>
-                <strong>Your Answer:</strong>{" "}
-                {userAnswer || "Not answered"}
-              </p>
-
-              {!isCorrect && (
-                <p style={{ marginTop: "10px" }}>
-                  <strong>Correct Answer:</strong>{" "}
-                  {question.CorrectAnswer}
-                </p>
-              )}
-
-              <p
-                style={{
-                  marginTop: "10px",
-                  fontStyle: "italic",
-                }}
-              >
-                <strong>Explanation:</strong>{" "}
-                {question.Explanation}
+              <p>
+                Check your answers and explanations.
               </p>
             </div>
-          );
-        })}
 
-        <button
-          className="next-btn"
-          style={{ marginTop: "25px" }}
-          onClick={() => setShowReview(false)}
-        >
-          ← Back to Result
-        </button>
+            <button
+              className="back-review-btn"
+              onClick={() => setShowReview(false)}
+            >
+              ← Results
+            </button>
+
+          </div>
+
+
+          <div className="review-summary">
+
+            <div>
+              <span>
+                Score
+              </span>
+
+              <strong>
+                {calculateScore()} / {questions.length}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                Accuracy
+              </span>
+
+              <strong>
+                {Math.round(
+                  (calculateScore() /
+                    questions.length) *
+                    100
+                )}
+                %
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                Time
+              </span>
+
+              <strong>
+                {formatTime(timeSpent)}
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div className="review-list">
+
+            {questions.map((question, index) => {
+
+              const userAnswer =
+                answers[index];
+
+              const isCorrect =
+                userAnswer ===
+                question.CorrectAnswer;
+
+              return (
+                <div
+                  key={index}
+                  className={`review-item ${
+                    isCorrect
+                      ? "review-correct"
+                      : "review-wrong"
+                  }`}
+                >
+
+                  <div className="review-item-top">
+
+                    <span className="review-number">
+                      Question {index + 1}
+                    </span>
+
+                    <span
+                      className={`review-status ${
+                        isCorrect
+                          ? "correct"
+                          : "wrong"
+                      }`}
+                    >
+                      {isCorrect
+                        ? "✓ Correct"
+                        : "✕ Incorrect"}
+                    </span>
+
+                  </div>
+
+
+                  <h3>
+                    {question.Question}
+                  </h3>
+
+
+                  <div className="review-answer">
+
+                    <span>
+                      Your Answer
+                    </span>
+
+                    <p>
+                      {userAnswer ||
+                        "Not Answered"}
+                    </p>
+
+                  </div>
+
+
+                  {!isCorrect && (
+                    <div className="review-answer correct-answer">
+
+                      <span>
+                        Correct Answer
+                      </span>
+
+                      <p>
+                        {question.CorrectAnswer}
+                      </p>
+
+                    </div>
+                  )}
+
+
+                  {question.Explanation && (
+                    <div className="review-explanation">
+
+                      <span>
+                        💡 Explanation
+                      </span>
+
+                      <p>
+                        {question.Explanation}
+                      </p>
+
+                    </div>
+                  )}
+
+                </div>
+              );
+            })}
+
+          </div>
+
+
+          <div className="review-bottom">
+
+            <button
+              className="secondary-result-btn"
+              onClick={() => setShowReview(false)}
+            >
+              ← Back to Results
+            </button>
+
+          </div>
+
+        </div>
+
       </div>
     );
   }
 
-  // =========================
-  // QUIZ PAGE
-  // =========================
+
+  // =========================================================
+  // MAIN QUESTION PAGE
+  // =========================================================
+
+  const progress =
+    ((currentIndex + 1) /
+      questions.length) *
+    100;
+
+  const answeredCount =
+    answers.filter(
+      (answer) => answer
+    ).length;
+
+  const remainingCount =
+    questions.length - answeredCount;
+
 
   return (
-    <div className="quiz-container">
-      <h1 className="quiz-title">
-        Adaptive Minds Quiz
-      </h1>
+    <div className="quiz-page">
 
-      {/* Timer */}
+      <div className="quiz-layout">
 
-      <div
-        style={{
-          textAlign: "right",
-          fontSize: "18px",
-          fontWeight: "bold",
-          marginBottom: "15px",
-        }}
-      >
-        ⏱️ Time: {formatTime(timeSpent)}
+        {/* =================================================
+            MAIN QUIZ AREA
+        ================================================= */}
+
+        <main className="quiz-main">
+
+          {/* TOP HEADER */}
+          <div className="question-header">
+
+            <div className="question-header-left">
+
+              <div className="question-header-icon">
+                {"</>"}
+              </div>
+
+              <div>
+
+                <h1>
+                  Data Structures & Algorithms
+                </h1>
+
+                <p>
+                  Topic:{" "}
+                  <span>
+                    {currentQuestion.Topic ||
+                      selectedTopic}
+                  </span>
+
+                  <b>•</b>
+
+                  Difficulty:{" "}
+                  <span className="difficulty-text">
+                    {selectedDifficulty}
+                  </span>
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div className="question-progress-info">
+
+              <span>
+                Question {currentIndex + 1} of{" "}
+                {questions.length}
+              </span>
+
+              <div className="header-progress">
+
+                <div
+                  style={{
+                    width: `${progress}%`,
+                  }}
+                />
+
+              </div>
+
+              <strong>
+                {Math.round(progress)}%
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          {/* QUESTION CARD */}
+          <div className="question-card">
+
+            <div className="question-badge">
+              Question {currentIndex + 1}
+            </div>
+
+
+            <h2 className="question-text">
+              {currentQuestion.Question}
+            </h2>
+
+
+            {/* OPTIONS */}
+            <div className="options-list">
+
+              {[
+                currentQuestion.Option1,
+                currentQuestion.Option2,
+                currentQuestion.Option3,
+                currentQuestion.Option4,
+              ].map((option, index) => {
+
+                const optionLetter =
+                  String.fromCharCode(
+                    65 + index
+                  );
+
+                return (
+                  <label
+                    key={index}
+                    className={`answer-option ${
+                      selectedOption === option
+                        ? "selected"
+                        : ""
+                    }`}
+                  >
+
+                    <input
+                      type="radio"
+                      name="quiz-option"
+                      value={option}
+                      checked={
+                        selectedOption === option
+                      }
+                      onChange={() =>
+                        handleOptionChange(
+                          option
+                        )
+                      }
+                    />
+
+                    <span className="option-letter">
+                      {optionLetter}
+                    </span>
+
+                    <span className="option-text">
+                      {option}
+                    </span>
+
+                    <span className="option-check">
+                      ✓
+                    </span>
+
+                  </label>
+                );
+              })}
+
+            </div>
+
+
+            {/* ERROR */}
+            {errorMessage && (
+              <div className="quiz-validation">
+                ⚠️ {errorMessage}
+              </div>
+            )}
+
+
+            {/* HINT */}
+            <div className="quiz-hint">
+
+              <div className="hint-icon">
+                💡
+              </div>
+
+              <div>
+                <strong>
+                  Quick Hint
+                </strong>
+
+                <p>
+                  Think carefully about the
+                  concept before selecting your
+                  answer.
+                </p>
+              </div>
+
+            </div>
+
+
+            {/* NAVIGATION */}
+            <div className="question-actions">
+
+              <button
+                className="previous-btn"
+                onClick={handlePrevious}
+                disabled={currentIndex === 0}
+              >
+                ← Previous
+              </button>
+
+
+              <button
+                className="next-question-btn"
+                onClick={handleNext}
+                disabled={isSubmitting}
+              >
+                {currentIndex ===
+                questions.length - 1
+                  ? isSubmitting
+                    ? "Submitting..."
+                    : "Submit Quiz"
+                  : "Next"}
+
+                <span>
+                  →
+                </span>
+              </button>
+
+            </div>
+
+          </div>
+
+        </main>
+
+
+        {/* =================================================
+            RIGHT SIDEBAR
+        ================================================= */}
+
+        <aside className="quiz-sidebar">
+
+          {/* TIMER */}
+          <div className="timer-card">
+
+            <div className="timer-circle">
+
+              <div>
+                🕐
+              </div>
+
+            </div>
+
+            <div>
+
+              <span>
+                Time Spent
+              </span>
+
+              <strong>
+                {formatTime(timeSpent)}
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          {/* QUESTION NAVIGATION */}
+          <div className="sidebar-card">
+
+            <div className="sidebar-card-title">
+              <span>
+                ◉
+              </span>
+
+              Question Navigation
+            </div>
+
+
+            <div className="question-number-grid">
+
+              {questions.map(
+                (_, index) => (
+                  <button
+                    key={index}
+                    className={`question-number ${
+                      index === currentIndex
+                        ? "current"
+                        : answers[index]
+                        ? "answered"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      goToQuestion(index)
+                    }
+                  >
+                    {index + 1}
+                  </button>
+                )
+              )}
+
+            </div>
+
+
+            <div className="legend">
+
+              <span>
+                <i className="legend-dot answered-dot" />
+                Answered
+              </span>
+
+              <span>
+                <i className="legend-dot current-dot" />
+                Current
+              </span>
+
+              <span>
+                <i className="legend-dot unanswered-dot" />
+                Not Answered
+              </span>
+
+            </div>
+
+          </div>
+
+
+          {/* OVERVIEW */}
+          <div className="sidebar-card">
+
+            <div className="sidebar-card-title">
+              <span>
+                ▣
+              </span>
+
+              Quiz Overview
+            </div>
+
+
+            <div className="overview-row">
+
+              <span>
+                Total Questions
+              </span>
+
+              <strong>
+                {questions.length}
+              </strong>
+
+            </div>
+
+
+            <div className="overview-row">
+
+              <span>
+                Answered
+              </span>
+
+              <strong>
+                {answeredCount}
+              </strong>
+
+            </div>
+
+
+            <div className="overview-row">
+
+              <span>
+                Remaining
+              </span>
+
+              <strong>
+                {remainingCount}
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          {/* MOTIVATION CARD */}
+          <div className="motivation-card">
+
+            <div className="motivation-icon">
+              ✨
+            </div>
+
+            <h3>
+              Keep going!
+            </h3>
+
+            <p>
+              Stay focused and trust your
+              understanding.
+            </p>
+
+          </div>
+
+        </aside>
+
       </div>
 
-      <h3 className="question-count">
-        Question {currentIndex + 1} of {questions.length}
-      </h3>
-
-      {/* Progress Bar */}
-
-      <div className="progress-container">
-        <div
-          className="progress-bar"
-          style={{
-            width: `${
-              ((currentIndex + 1) /
-                questions.length) *
-              100
-            }%`,
-          }}
-        ></div>
-      </div>
-
-      {/* Error Message */}
-
-      {errorMessage && (
-        <p
-          style={{
-            color: "red",
-            textAlign: "center",
-            marginBottom: "15px",
-            fontWeight: "bold",
-          }}
-        >
-          ⚠️ {errorMessage}
-        </p>
-      )}
-
-      {/* Question */}
-
-      <p className="question">
-        {currentQuestion.Question}
-      </p>
-
-      {/* Options */}
-
-      {[
-        currentQuestion.Option1,
-        currentQuestion.Option2,
-        currentQuestion.Option3,
-        currentQuestion.Option4,
-      ].map((option, index) => (
-        <label
-          className={`option ${
-            selectedOption === option
-              ? "selected"
-              : ""
-          }`}
-          key={index}
-        >
-          <input
-            type="radio"
-            name="answer"
-            checked={selectedOption === option}
-            onChange={() => {
-              setSelectedOption(option);
-              setErrorMessage("");
-
-              const updatedAnswers = [...answers];
-
-              updatedAnswers[currentIndex] =
-                option;
-
-              setAnswers(updatedAnswers);
-            }}
-          />
-
-          {option}
-        </label>
-      ))}
-
-      {/* Next / Submit Button */}
-
-      <button
-        className="next-btn"
-        disabled={isSubmitting}
-        onClick={() => {
-          if (isSubmitting) {
-            return;
-          }
-
-          if (!selectedOption) {
-            setErrorMessage(
-              "Please select an answer before continuing."
-            );
-
-            return;
-          }
-
-          setErrorMessage("");
-
-          if (
-            currentIndex <
-            questions.length - 1
-          ) {
-            setCurrentIndex(
-              currentIndex + 1
-            );
-
-            setSelectedOption(
-              answers[currentIndex + 1] || ""
-            );
-          } else {
-            setIsSubmitting(true);
-
-            const score = calculateScore();
-
-            fetch(
-              "http://localhost:5000/predict",
-              {
-                method: "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-
-                body: JSON.stringify({
-                  quizScore: score * 20,
-                  accuracy: score * 20,
-
-                  // Temporary value.
-                  // We will replace this with
-                  // actual timeSpent in Step 4.
-                  timeSpent: timeSpent,
-                }),
-              }
-            )
-              .then((response) =>
-                response.json()
-              )
-              .then((data) => {
-                setPrediction(
-                  data.recommendation
-                );
-
-                setQuizCompleted(true);
-                setIsSubmitting(false);
-              })
-              .catch((error) => {
-                console.error(
-                  "Prediction Error:",
-                  error
-                );
-
-                setIsSubmitting(false);
-
-                setErrorMessage(
-                  "Something went wrong while generating your recommendation."
-                );
-              });
-          }
-        }}
-      >
-        {currentIndex ===
-        questions.length - 1
-          ? isSubmitting
-            ? "Submitting..."
-            : "Submit Quiz"
-          : "Next →"}
-      </button>
     </div>
   );
 }
