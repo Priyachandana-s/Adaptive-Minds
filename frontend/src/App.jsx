@@ -10,6 +10,7 @@ import QuizPage from "./pages/QuizPage";
 import LearningSelection from "./pages/LearningSelection";
 import LearningPage from "./pages/LearningPage";
 import FinalTestPage from "./pages/FinalTestPage";
+import AITutor from "./pages/AITutor";
 
 function App() {
   return (
@@ -24,7 +25,6 @@ function App() {
 
         <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* ADD IT HERE */}
         <Route path="/learning" element={<LearningSelection />} />
 
         <Route path="/subject/:subjectName" element={<SubjectPage />} />
@@ -36,6 +36,8 @@ function App() {
         <Route path="/learning-page" element={<LearningPage />} />
 
         <Route path="/final-test" element={<FinalTestPage />} />
+
+        <Route path="/ai-tutor" element={<AITutor />} />
 
       </Routes>
     </BrowserRouter>

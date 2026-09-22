@@ -1,3 +1,7 @@
+require("dotenv").config({
+    path: require("path").join(__dirname, "../.env")
+});
+
 const express = require("express");
 const cors = require("cors");
 
@@ -7,6 +11,7 @@ const quizRoutes = require("./routes/quizRoutes");
 const predictRoutes = require("./routes/predictRoutes");
 const csvRoutes = require("./routes/csvRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const db = require("./config/db");
 
@@ -23,6 +28,7 @@ app.use("/", predictRoutes);
 app.use("/", csvRoutes);
 
 app.use("/api", recommendationRoutes);
+app.use("/api/ai", aiRoutes);
 
 db.connect((err) => {
     if (err) {
