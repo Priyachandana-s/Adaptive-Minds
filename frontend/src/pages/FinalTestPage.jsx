@@ -419,7 +419,7 @@ function FinalTestPage() {
           <div className="space-y-4">
 
             {currentQuestion.options.map(
-              (option) => (
+              (option) => ( 
 
                 <button
                   key={option}
