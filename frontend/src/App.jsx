@@ -11,11 +11,15 @@ import LearningSelection from "./pages/LearningSelection";
 import LearningPage from "./pages/LearningPage";
 import FinalTestPage from "./pages/FinalTestPage";
 import AITutor from "./pages/AITutor";
+import ResetPassword from "./pages/ResetPassword";
+import CodingPractice from "./pages/CodingPractice";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="/" element={<Login />} />
 
@@ -38,6 +42,8 @@ function App() {
         <Route path="/final-test" element={<FinalTestPage />} />
 
         <Route path="/ai-tutor" element={<AITutor />} />
+
+        <Route path="/coding-practice" element={<CodingPractice />}/>
 
       </Routes>
     </BrowserRouter>

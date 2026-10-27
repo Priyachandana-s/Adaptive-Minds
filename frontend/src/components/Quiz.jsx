@@ -1,3 +1,4 @@
+
 import "./Quiz.css";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -26,12 +27,15 @@ function Quiz({
   const [recommendationError, setRecommendationError] =
     useState("");
 
+  // Use the selected subject and topic consistently.
   const subjectName =
     localStorage.getItem("currentSubject") ||
+    selectedSubject ||
     "Data Structures";
 
   const topicName =
     localStorage.getItem("currentTopic") ||
+    selectedTopic ||
     "Arrays";
 
   // =========================================================
@@ -39,9 +43,29 @@ function Quiz({
   // =========================================================
 
   useEffect(() => {
-    fetch(
-      `http://localhost:5000/csvquestions?subject=${selectedSubject}&topic=${selectedTopic}&difficulty=${selectedDifficulty}`
-    )
+    if (!selectedSubject || !selectedTopic || !selectedDifficulty) {
+      setErrorMessage(
+        "Please select a subject, topic, and difficulty."
+      );
+      return;
+    }
+
+    setQuestions([]);
+    setErrorMessage("");
+    setCurrentIndex(0);
+    setSelectedOption("");
+    setAnswers([]);
+    setQuizCompleted(false);
+    setShowReview(false);
+    setTimeSpent(0);
+
+    const params = new URLSearchParams({
+      subject: selectedSubject,
+      topic: selectedTopic,
+      difficulty: selectedDifficulty,
+    });
+
+    fetch(`http://localhost:5000/csvquestions?${params.toString()}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to load questions");
@@ -84,14 +108,24 @@ function Quiz({
         <div className="quiz-loading">
           <div className="quiz-loading-icon">🧠</div>
 
-          <h2>Loading Questions...</h2>
+          <h2>
+            {errorMessage
+              ? "Unable to Load Quiz"
+              : "Loading Questions..."}
+          </h2>
 
-          <p>Preparing your personalized assessment</p>
+          <p>
+            {errorMessage ||
+              "Preparing your personalized assessment"}
+          </p>
 
           {errorMessage && (
-            <p className="quiz-error-text">
-              {errorMessage}
-            </p>
+            <button
+              className="secondary-result-btn"
+              onClick={() => navigate("/learning-page")}
+            >
+              Back to Learning
+            </button>
           )}
         </div>
       </div>
@@ -139,9 +173,7 @@ function Quiz({
 
     setAnswers((previousAnswers) => {
       const updatedAnswers = [...previousAnswers];
-
       updatedAnswers[currentIndex] = option;
-
       return updatedAnswers;
     });
   }
@@ -159,11 +191,9 @@ function Quiz({
         "http://localhost:5000/api/recommend",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
             subject: subjectName,
             topic: topicName,
@@ -180,20 +210,31 @@ function Quiz({
 
       console.log("Recommendation Response:", data);
 
-      setRecommendations(
-        data.recommendations || []
-      );
+      setRecommendations(data.recommendations || []);
     } catch (error) {
       console.error("Recommendation Error:", error);
-
       setRecommendations([]);
-
       setRecommendationError(
         "Unable to load recommended videos right now."
       );
     } finally {
       setRecommendationLoading(false);
     }
+  }
+
+  // =========================================================
+  // SAVE QUIZ RESULTS
+  // =========================================================
+
+  function saveQuizResults(recommendation, score, accuracy) {
+    localStorage.setItem("recommendedLevel", recommendation);
+    localStorage.setItem("currentTopicId", selectedTopic);
+    localStorage.setItem("currentSubjectId", selectedSubject);
+    localStorage.setItem("currentDifficulty", selectedDifficulty);
+
+    localStorage.setItem("initialQuizScore", String(score));
+    localStorage.setItem("initialQuizAccuracy", String(accuracy));
+    localStorage.setItem("initialQuizTime", String(timeSpent));
   }
 
   // =========================================================
@@ -214,20 +255,16 @@ function Quiz({
       (score / questions.length) * 100
     );
 
-    try {
-      // =====================================================
-      // ML PREDICTION
-      // =====================================================
+    let recommendation = "Medium";
 
+    try {
       const response = await fetch(
         "http://localhost:5000/predict",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
             quizScore: accuracy,
             accuracy: accuracy,
@@ -242,122 +279,27 @@ function Quiz({
 
       const data = await response.json();
 
-      const recommendation =
+      recommendation =
         data.recommendation ||
         data.prediction ||
         "Medium";
-
-      // =====================================================
-      // SAVE ADAPTIVE LEARNING INFORMATION
-      // =====================================================
-
-      localStorage.setItem(
-        "recommendedLevel",
-        recommendation
-      );
-
-      localStorage.setItem(
-        "currentTopicId",
-        selectedTopic
-      );
-
-      localStorage.setItem(
-        "currentSubjectId",
-        selectedSubject
-      );
-
-      localStorage.setItem(
-        "currentDifficulty",
-        selectedDifficulty
-      );
-
-      localStorage.setItem(
-        "initialQuizScore",
-        String(score)
-      );
-
-      localStorage.setItem(
-        "initialQuizAccuracy",
-        String(accuracy)
-      );
-
-      localStorage.setItem(
-        "initialQuizTime",
-        String(timeSpent)
-      );
-
-      setPrediction(recommendation);
-      setQuizCompleted(true);
-      setIsSubmitting(false);
-
-      // =====================================================
-      // GET RECOMMENDED VIDEOS
-      // =====================================================
-
-      await fetchRecommendations(recommendation);
     } catch (error) {
       console.error("Prediction Error:", error);
 
-      // =====================================================
-      // FALLBACK RECOMMENDATION
-      // =====================================================
-
-      let fallbackRecommendation = "Medium";
-
       if (accuracy >= 80) {
-        fallbackRecommendation = "Hard";
+        recommendation = "Hard";
       } else if (accuracy < 50) {
-        fallbackRecommendation = "Easy";
+        recommendation = "Easy";
       }
-
-      // =====================================================
-      // SAVE FALLBACK RECOMMENDATION
-      // =====================================================
-
-      localStorage.setItem(
-        "recommendedLevel",
-        fallbackRecommendation
-      );
-
-      localStorage.setItem(
-        "currentTopicId",
-        selectedTopic
-      );
-
-      localStorage.setItem(
-        "currentSubjectId",
-        selectedSubject
-      );
-
-      localStorage.setItem(
-        "currentDifficulty",
-        selectedDifficulty
-      );
-
-      localStorage.setItem(
-        "initialQuizScore",
-        String(score)
-      );
-
-      localStorage.setItem(
-        "initialQuizAccuracy",
-        String(accuracy)
-      );
-
-      localStorage.setItem(
-        "initialQuizTime",
-        String(timeSpent)
-      );
-
-      setPrediction(fallbackRecommendation);
-
-      setQuizCompleted(true);
-      setIsSubmitting(false);
-
-      await fetchRecommendations(
-        fallbackRecommendation
-      );
     }
+
+    saveQuizResults(recommendation, score, accuracy);
+
+    setPrediction(recommendation);
+    setQuizCompleted(true);
+    setIsSubmitting(false);
+
+    await fetchRecommendations(recommendation);
   }
 
   // =========================================================
@@ -369,7 +311,6 @@ function Quiz({
       setErrorMessage(
         "Please select an answer before continuing."
       );
-
       return;
     }
 
@@ -379,10 +320,7 @@ function Quiz({
       const nextIndex = currentIndex + 1;
 
       setCurrentIndex(nextIndex);
-
-      setSelectedOption(
-        answers[nextIndex] || ""
-      );
+      setSelectedOption(answers[nextIndex] || "");
     } else {
       submitQuiz();
     }
@@ -396,11 +334,7 @@ function Quiz({
     const previousIndex = currentIndex - 1;
 
     setCurrentIndex(previousIndex);
-
-    setSelectedOption(
-      answers[previousIndex] || ""
-    );
-
+    setSelectedOption(answers[previousIndex] || "");
     setErrorMessage("");
   }
 
@@ -410,11 +344,7 @@ function Quiz({
 
   function goToQuestion(index) {
     setCurrentIndex(index);
-
-    setSelectedOption(
-      answers[index] || ""
-    );
-
+    setSelectedOption(answers[index] || "");
     setErrorMessage("");
   }
 
@@ -432,220 +362,136 @@ function Quiz({
     return (
       <div className="quiz-page">
         <div className="result-card">
-
           <div className="result-header">
             <div className="result-icon">🎉</div>
 
             <h1>Assessment Completed</h1>
 
+            <p>{subjectName}</p>
+            <p>
+              Topic: <strong>{topicName}</strong>
+            </p>
             <p>Your quiz results are ready</p>
           </div>
 
           <div className="result-stats">
-
             <div className="result-stat">
-              <div className="stat-icon purple">
-                🏆
-              </div>
+              <div className="stat-icon purple">🏆</div>
 
               <div>
-                <span className="stat-label">
-                  Score
-                </span>
-
+                <span className="stat-label">Score</span>
                 <strong>
                   {finalScore} / {questions.length}
                 </strong>
-
-                <small>
-                  Questions Attempted
-                </small>
+                <small>Questions Attempted</small>
               </div>
             </div>
 
             <div className="result-stat">
-              <div className="stat-icon green">
-                🎯
-              </div>
+              <div className="stat-icon green">🎯</div>
 
               <div>
-                <span className="stat-label">
-                  Accuracy
-                </span>
-
-                <strong>
-                  {accuracy}%
-                </strong>
-
-                <small>
-                  Overall Performance
-                </small>
+                <span className="stat-label">Accuracy</span>
+                <strong>{accuracy}%</strong>
+                <small>Overall Performance</small>
               </div>
             </div>
 
             <div className="result-stat">
-              <div className="stat-icon violet">
-                🕐
-              </div>
+              <div className="stat-icon violet">🕐</div>
 
               <div>
-                <span className="stat-label">
-                  Time Spent
-                </span>
-
-                <strong>
-                  {formatTime(timeSpent)}
-                </strong>
-
-                <small>
-                  Total Quiz Time
-                </small>
+                <span className="stat-label">Time Spent</span>
+                <strong>{formatTime(timeSpent)}</strong>
+                <small>Total Quiz Time</small>
               </div>
             </div>
-
           </div>
 
           <div className="recommendation-card">
-
             <div className="recommendation-top">
-
-              <div className="recommendation-icon">
-                🤖
-              </div>
+              <div className="recommendation-icon">🤖</div>
 
               <div>
                 <h2>AI Recommendation</h2>
-
-                <p>
-                  Based on your performance
-                </p>
+                <p>Based on your performance</p>
               </div>
-
             </div>
 
             <div className="recommendation-body">
-
               <div className="recommendation-level-icon">
                 📈
               </div>
 
               <div className="recommendation-level">
-
-                <span>
-                  Recommended Level
-                </span>
-
-                <strong>
-                  {prediction}
-                </strong>
-
+                <span>Recommended Level</span>
+                <strong>{prediction}</strong>
               </div>
 
               <div className="recommendation-message">
-
                 {prediction === "Hard" ? (
                   <>
-                    <h3>
-                      You're ready for a challenge!
-                    </h3>
-
+                    <h3>You're ready for a challenge!</h3>
                     <p>
-                      Try practicing hard level
-                      questions to strengthen your
-                      understanding and boost your
-                      confidence.
+                      Try practicing hard level questions to
+                      strengthen your understanding and boost
+                      your confidence.
                     </p>
                   </>
                 ) : prediction === "Easy" ? (
                   <>
-                    <h3>
-                      Let's strengthen the basics.
-                    </h3>
-
+                    <h3>Let's strengthen the basics.</h3>
                     <p>
-                      Practice easy level questions
-                      to build a stronger foundation
-                      before moving ahead.
+                      Practice easy level questions to build a
+                      stronger foundation before moving ahead.
                     </p>
                   </>
                 ) : (
                   <>
-                    <h3>
-                      Keep building your skills.
-                    </h3>
-
+                    <h3>Keep building your skills.</h3>
                     <p>
-                      Continue practicing medium
-                      level questions to improve your
-                      understanding and confidence.
+                      Continue practicing medium level questions
+                      to improve your understanding and confidence.
                     </p>
                   </>
                 )}
-
               </div>
-
             </div>
           </div>
 
           <div className="recommended-learning-section">
-
             <div className="recommended-learning-header">
-
               <div className="recommended-learning-title">
-
                 <div className="recommended-learning-icon">
                   🎥
                 </div>
 
                 <div>
-                  <h2>
-                    Recommended Learning
-                  </h2>
-
+                  <h2>Recommended Learning</h2>
                   <p>
                     Personalized videos for{" "}
-                    <strong>
-                      {topicName}
-                    </strong>
+                    <strong>{topicName}</strong>
                   </p>
                 </div>
-
               </div>
-
             </div>
 
             {recommendationLoading && (
               <div className="recommendation-status-card">
-
-                <div className="status-icon">
-                  🔎
-                </div>
-
-                <p>
-                  Finding the best learning
-                  videos...
-                </p>
-
+                <div className="status-icon">🔎</div>
+                <p>Finding the best learning videos...</p>
                 <span>
-                  Matching content to your{" "}
-                  {prediction} learning level.
+                  Matching content to your {prediction} learning
+                  level.
                 </span>
-
               </div>
             )}
 
             {!recommendationLoading &&
               recommendationError && (
                 <div className="recommendation-error-card">
-
-                  <p>
-                    ⚠️ Recommendations unavailable
-                  </p>
-
-                  <span>
-                    {recommendationError}
-                  </span>
-
+                  <p>⚠️ Recommendations unavailable</p>
+                  <span>{recommendationError}</span>
                 </div>
               )}
 
@@ -653,40 +499,26 @@ function Quiz({
               !recommendationError &&
               recommendations.length === 0 && (
                 <div className="recommendation-status-card">
-
-                  <div className="status-icon">
-                    📚
-                  </div>
-
-                  <p>
-                    No matching videos found
-                  </p>
-
+                  <div className="status-icon">📚</div>
+                  <p>No matching videos found</p>
                   <span>
-                    You can continue with the learning
-                    resources available for this topic.
+                    You can continue with the learning resources
+                    available for this topic.
                   </span>
-
                 </div>
               )}
 
             {!recommendationLoading &&
               recommendations.length > 0 && (
                 <div className="video-grid">
-
                   {recommendations
                     .slice(0, 6)
                     .map((video, index) => (
                       <div
-                        key={
-                          video.videoId ||
-                          index
-                        }
+                        key={video.videoId || index}
                         className="result-video-card"
                       >
-
                         <div className="video-thumbnail">
-
                           {video.thumbnail ? (
                             <img
                               src={video.thumbnail}
@@ -701,14 +533,10 @@ function Quiz({
                           <div className="video-number">
                             #{index + 1}
                           </div>
-
                         </div>
 
                         <div className="video-content">
-
-                          <h3>
-                            {video.title}
-                          </h3>
+                          <h3>{video.title}</h3>
 
                           <p className="video-channel">
                             {video.channel}
@@ -728,19 +556,14 @@ function Quiz({
                           >
                             ▶ Watch Video
                           </a>
-
                         </div>
-
                       </div>
                     ))}
-
                 </div>
               )}
-
           </div>
 
           <div className="result-actions">
-
             <button
               className="secondary-result-btn"
               onClick={() => setShowReview(true)}
@@ -750,16 +573,11 @@ function Quiz({
 
             <button
               className="primary-result-btn"
-              onClick={() =>
-                navigate("/learning-page")
-              }
+              onClick={() => navigate("/learning-page")}
             >
-              Start Learning
-              <span>→</span>
+              Start Learning <span>→</span>
             </button>
-
           </div>
-
         </div>
       </div>
     );
@@ -772,22 +590,14 @@ function Quiz({
   if (quizCompleted && showReview) {
     return (
       <div className="quiz-page">
-
         <div className="review-card">
-
           <div className="review-header">
-
             <div>
-              <span className="review-badge">
-                Quiz Review
-              </span>
-
-              <h1>
-                Review Your Answers
-              </h1>
-
+              <span className="review-badge">Quiz Review</span>
+              <h1>Review Your Answers</h1>
+              <p>Check your answers and explanations.</p>
               <p>
-                Check your answers and explanations.
+                {subjectName} — {topicName}
               </p>
             </div>
 
@@ -797,14 +607,11 @@ function Quiz({
             >
               ← Results
             </button>
-
           </div>
 
           <div className="review-summary">
-
             <div>
               <span>Score</span>
-
               <strong>
                 {calculateScore()} / {questions.length}
               </strong>
@@ -812,12 +619,9 @@ function Quiz({
 
             <div>
               <span>Accuracy</span>
-
               <strong>
                 {Math.round(
-                  (calculateScore() /
-                    questions.length) *
-                    100
+                  (calculateScore() / questions.length) * 100
                 )}
                 %
               </strong>
@@ -825,119 +629,72 @@ function Quiz({
 
             <div>
               <span>Time</span>
-
-              <strong>
-                {formatTime(timeSpent)}
-              </strong>
+              <strong>{formatTime(timeSpent)}</strong>
             </div>
-
           </div>
 
           <div className="review-list">
-
             {questions.map((question, index) => {
-
-              const userAnswer =
-                answers[index];
+              const userAnswer = answers[index];
 
               const isCorrect =
-                userAnswer ===
-                question.CorrectAnswer;
+                userAnswer === question.CorrectAnswer;
 
               return (
                 <div
                   key={index}
                   className={`review-item ${
-                    isCorrect
-                      ? "review-correct"
-                      : "review-wrong"
+                    isCorrect ? "review-correct" : "review-wrong"
                   }`}
                 >
-
                   <div className="review-item-top">
-
                     <span className="review-number">
                       Question {index + 1}
                     </span>
 
                     <span
                       className={`review-status ${
-                        isCorrect
-                          ? "correct"
-                          : "wrong"
+                        isCorrect ? "correct" : "wrong"
                       }`}
                     >
-                      {isCorrect
-                        ? "✓ Correct"
-                        : "✕ Incorrect"}
+                      {isCorrect ? "✓ Correct" : "✕ Incorrect"}
                     </span>
-
                   </div>
 
-                  <h3>
-                    {question.Question}
-                  </h3>
+                  <h3>{question.Question}</h3>
 
                   <div className="review-answer">
-
-                    <span>
-                      Your Answer
-                    </span>
-
-                    <p>
-                      {userAnswer ||
-                        "Not Answered"}
-                    </p>
-
+                    <span>Your Answer</span>
+                    <p>{userAnswer || "Not Answered"}</p>
                   </div>
 
                   {!isCorrect && (
                     <div className="review-answer correct-answer">
-
-                      <span>
-                        Correct Answer
-                      </span>
-
-                      <p>
-                        {question.CorrectAnswer}
-                      </p>
-
+                      <span>Correct Answer</span>
+                      <p>{question.CorrectAnswer}</p>
                     </div>
                   )}
 
                   {question.Explanation && (
                     <div className="review-explanation">
-
-                      <span>
-                        💡 Explanation
-                      </span>
-
-                      <p>
-                        {question.Explanation}
-                      </p>
-
+                      <span>💡 Explanation</span>
+                      <p>{question.Explanation}</p>
                     </div>
                   )}
-
                 </div>
               );
             })}
-
           </div>
 
           <div className="review-bottom">
-
             <button
               className="secondary-result-btn"
               onClick={() => setShowReview(false)}
             >
               ← Back to Results
             </button>
-
           </div>
-
         </div>
-
       </div>
     );
   }
@@ -947,85 +704,53 @@ function Quiz({
   // =========================================================
 
   const progress =
-    ((currentIndex + 1) /
-      questions.length) *
-    100;
+    ((currentIndex + 1) / questions.length) * 100;
 
-  const answeredCount =
-    answers.filter(
-      (answer) => answer
-    ).length;
+  const answeredCount = answers.filter(
+    (answer) => answer
+  ).length;
 
-  const remainingCount =
-    questions.length - answeredCount;
+  const remainingCount = questions.length - answeredCount;
 
   return (
     <div className="quiz-page">
-
       <div className="quiz-layout">
-
         <main className="quiz-main">
-
           <div className="question-header">
-
             <div className="question-header-left">
-
               <div className="question-header-icon">
                 {"</>"}
               </div>
 
               <div>
-
-                <h1>
-                  Data Structures & Algorithms
-                </h1>
+                {/* Dynamic heading: works for every selected subject */}
+                <h1>{subjectName}</h1>
 
                 <p>
-                  Topic:{" "}
-                  <span>
-                    {currentQuestion.Topic ||
-                      selectedTopic}
-                  </span>
-
-                  <b>•</b>
-
+                  Topic: <span>{topicName}</span>
+                  <b> • </b>
                   Difficulty:{" "}
                   <span className="difficulty-text">
                     {selectedDifficulty}
                   </span>
                 </p>
-
               </div>
-
             </div>
 
             <div className="question-progress-info">
-
               <span>
-                Question {currentIndex + 1} of{" "}
-                {questions.length}
+                Question {currentIndex + 1} of {questions.length}
               </span>
 
               <div className="header-progress">
-
-                <div
-                  style={{
-                    width: `${progress}%`,
-                  }}
-                />
-
+                <div style={{ width: `${progress}%` }} />
               </div>
 
-              <strong>
-                {Math.round(progress)}%
-              </strong>
-
+              <strong>{Math.round(progress)}%</strong>
             </div>
-
           </div>
 
           <div className="question-card">
-
             <div className="question-badge">
               Question {currentIndex + 1}
             </div>
@@ -1035,59 +760,41 @@ function Quiz({
             </h2>
 
             <div className="options-list">
-
               {[
                 currentQuestion.Option1,
                 currentQuestion.Option2,
                 currentQuestion.Option3,
                 currentQuestion.Option4,
               ].map((option, index) => {
-
-                const optionLetter =
-                  String.fromCharCode(
-                    65 + index
-                  );
+                const optionLetter = String.fromCharCode(
+                  65 + index
+                );
 
                 return (
                   <label
                     key={index}
                     className={`answer-option ${
-                      selectedOption === option
-                        ? "selected"
-                        : ""
+                      selectedOption === option ? "selected" : ""
                     }`}
                   >
-
                     <input
                       type="radio"
                       name="quiz-option"
                       value={option}
-                      checked={
-                        selectedOption === option
-                      }
-                      onChange={() =>
-                        handleOptionChange(
-                          option
-                        )
-                      }
+                      checked={selectedOption === option}
+                      onChange={() => handleOptionChange(option)}
                     />
 
                     <span className="option-letter">
                       {optionLetter}
                     </span>
 
-                    <span className="option-text">
-                      {option}
-                    </span>
+                    <span className="option-text">{option}</span>
 
-                    <span className="option-check">
-                      ✓
-                    </span>
-
+                    <span className="option-check">✓</span>
                   </label>
                 );
               })}
-
             </div>
 
             {errorMessage && (
@@ -1097,29 +804,18 @@ function Quiz({
             )}
 
             <div className="quiz-hint">
-
-              <div className="hint-icon">
-                💡
-              </div>
+              <div className="hint-icon">💡</div>
 
               <div>
-
-                <strong>
-                  Quick Hint
-                </strong>
-
+                <strong>Quick Hint</strong>
                 <p>
-                  Think carefully about the
-                  concept before selecting your
-                  answer.
+                  Think carefully about the concept before
+                  selecting your answer.
                 </p>
-
               </div>
-
             </div>
 
             <div className="question-actions">
-
               <button
                 className="previous-btn"
                 onClick={handlePrevious}
@@ -1133,90 +829,55 @@ function Quiz({
                 onClick={handleNext}
                 disabled={isSubmitting}
               >
-                {currentIndex ===
-                questions.length - 1
+                {currentIndex === questions.length - 1
                   ? isSubmitting
                     ? "Submitting..."
                     : "Submit Quiz"
                   : "Next"}
 
-                <span>
-                  →
-                </span>
+                <span>→</span>
               </button>
-
             </div>
-
           </div>
-
         </main>
 
         <aside className="quiz-sidebar">
-
           <div className="timer-card">
-
             <div className="timer-circle">
-
-              <div>
-                🕐
-              </div>
-
+              <div>🕐</div>
             </div>
 
             <div>
-
-              <span>
-                Time Spent
-              </span>
-
-              <strong>
-                {formatTime(timeSpent)}
-              </strong>
-
+              <span>Time Spent</span>
+              <strong>{formatTime(timeSpent)}</strong>
             </div>
-
           </div>
 
           <div className="sidebar-card">
-
             <div className="sidebar-card-title">
-
-              <span>
-                ◉
-              </span>
-
+              <span>◉</span>
               Question Navigation
-
             </div>
 
             <div className="question-number-grid">
-
-              {questions.map(
-                (_, index) => (
-
-                  <button
-                    key={index}
-                    className={`question-number ${
-                      index === currentIndex
-                        ? "current"
-                        : answers[index]
-                        ? "answered"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      goToQuestion(index)
-                    }
-                  >
-                    {index + 1}
-                  </button>
-
-                )
-              )}
-
+              {questions.map((_, index) => (
+                <button
+                  key={index}
+                  className={`question-number ${
+                    index === currentIndex
+                      ? "current"
+                      : answers[index]
+                      ? "answered"
+                      : ""
+                  }`}
+                  onClick={() => goToQuestion(index)}
+                >
+                  {index + 1}
+                </button>
+              ))}
             </div>
 
             <div className="legend">
-
               <span>
                 <i className="legend-dot answered-dot" />
                 Answered
@@ -1231,82 +892,38 @@ function Quiz({
                 <i className="legend-dot unanswered-dot" />
                 Not Answered
               </span>
-
             </div>
-
           </div>
 
           <div className="sidebar-card">
-
             <div className="sidebar-card-title">
-
-              <span>
-                ▣
-              </span>
-
+              <span>▣</span>
               Quiz Overview
-
             </div>
 
             <div className="overview-row">
-
-              <span>
-                Total Questions
-              </span>
-
-              <strong>
-                {questions.length}
-              </strong>
-
+              <span>Total Questions</span>
+              <strong>{questions.length}</strong>
             </div>
 
             <div className="overview-row">
-
-              <span>
-                Answered
-              </span>
-
-              <strong>
-                {answeredCount}
-              </strong>
-
+              <span>Answered</span>
+              <strong>{answeredCount}</strong>
             </div>
 
             <div className="overview-row">
-
-              <span>
-                Remaining
-              </span>
-
-              <strong>
-                {remainingCount}
-              </strong>
-
+              <span>Remaining</span>
+              <strong>{remainingCount}</strong>
             </div>
-
           </div>
 
           <div className="motivation-card">
-
-            <div className="motivation-icon">
-              ✨
-            </div>
-
-            <h3>
-              Keep going!
-            </h3>
-
-            <p>
-              Stay focused and trust your
-              understanding.
-            </p>
-
+            <div className="motivation-icon">✨</div>
+            <h3>Keep going!</h3>
+            <p>Stay focused and trust your understanding.</p>
           </div>
-
         </aside>
-
       </div>
-
     </div>
   );
 }

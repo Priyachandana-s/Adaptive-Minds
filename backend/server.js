@@ -1,3 +1,4 @@
+
 require("dotenv").config({
     path: require("path").join(__dirname, "../.env")
 });
@@ -12,6 +13,7 @@ const predictRoutes = require("./routes/predictRoutes");
 const csvRoutes = require("./routes/csvRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const db = require("./config/db");
 
@@ -20,16 +22,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Existing routes
 app.use("/subjects", subjectRoutes);
 app.use("/topics", topicRoutes);
-
 app.use("/", quizRoutes);
 app.use("/", predictRoutes);
 app.use("/", csvRoutes);
-
 app.use("/api", recommendationRoutes);
 app.use("/api/ai", aiRoutes);
 
+// Authentication routes
+app.use("/api/auth", authRoutes);
+
+// Database connection
 db.connect((err) => {
     if (err) {
         console.log("Database Connection Failed");
@@ -39,6 +44,7 @@ db.connect((err) => {
     }
 });
 
+// Start server
 app.listen(5000, () => {
     console.log("Server running on port 5000");
 });

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -20,7 +21,6 @@ function SemesterSelection() {
 
         {/* Header */}
         <div className="text-center mb-12">
-
           <div className="inline-flex items-center gap-3 mb-6">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#5B4BDB] to-[#7C6FF2] flex items-center justify-center text-2xl shadow-lg shadow-[#5B4BDB]/20">
               🧠
@@ -30,7 +30,6 @@ function SemesterSelection() {
               <h1 className="text-xl font-bold text-[#172554]">
                 Adaptive Minds
               </h1>
-
               <p className="text-xs text-[#64748B]">
                 Learn • Practice • Improve
               </p>
@@ -44,7 +43,6 @@ function SemesterSelection() {
           <p className="text-[#64748B] mt-3 text-lg">
             Select your semester to personalize your learning journey.
           </p>
-
         </div>
 
         {/* Semester cards */}
@@ -55,9 +53,7 @@ function SemesterSelection() {
             onClick={() => selectSemester("Semester 3")}
             className="group bg-white border border-[#E7E5F5] rounded-[28px] p-8 cursor-pointer shadow-[0_15px_40px_rgba(79,70,229,0.08)] hover:-translate-y-2 hover:shadow-[0_25px_55px_rgba(79,70,229,0.15)] transition-all duration-300"
           >
-
             <div className="flex items-start justify-between mb-8">
-
               <div className="w-16 h-16 rounded-2xl bg-[#EEEBFF] flex items-center justify-center text-3xl">
                 📚
               </div>
@@ -65,7 +61,6 @@ function SemesterSelection() {
               <div className="w-10 h-10 rounded-full bg-[#F5F3FF] flex items-center justify-center text-[#5B4BDB] group-hover:bg-[#5B4BDB] group-hover:text-white transition">
                 →
               </div>
-
             </div>
 
             <p className="text-sm font-semibold text-[#7C6FF2] mb-2">
@@ -77,14 +72,14 @@ function SemesterSelection() {
             </h3>
 
             <p className="text-[#64748B] leading-relaxed">
-              DSA, DBMS, Digital Electronics & more
+              Data Structures (DSA), Operating Systems (OS), OOP with Java,
+              and Database Management Systems (DBMS).
             </p>
 
             <div className="mt-7 flex items-center gap-2 text-sm text-[#94A3B8]">
               <span>🎯</span>
               <span>Build your core CS foundation</span>
             </div>
-
           </div>
 
           {/* Semester 4 */}
@@ -92,9 +87,7 @@ function SemesterSelection() {
             onClick={() => selectSemester("Semester 4")}
             className="group bg-white border border-[#E7E5F5] rounded-[28px] p-8 cursor-pointer shadow-[0_15px_40px_rgba(79,70,229,0.08)] hover:-translate-y-2 hover:shadow-[0_25px_55px_rgba(79,70,229,0.15)] transition-all duration-300"
           >
-
             <div className="flex items-start justify-between mb-8">
-
               <div className="w-16 h-16 rounded-2xl bg-[#E9F2FF] flex items-center justify-center text-3xl">
                 🚀
               </div>
@@ -102,7 +95,6 @@ function SemesterSelection() {
               <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#4F46E5] group-hover:bg-[#4F46E5] group-hover:text-white transition">
                 →
               </div>
-
             </div>
 
             <p className="text-sm font-semibold text-[#4F46E5] mb-2">
@@ -114,14 +106,14 @@ function SemesterSelection() {
             </h3>
 
             <p className="text-[#64748B] leading-relaxed">
-              OS, CN, Algorithms, Software Engineering
+              "Analysis and Design of Algorithms, Microcontrollers, Biology for Computer Engineers, and Digital Design and Computer Organization."
+
             </p>
 
             <div className="mt-7 flex items-center gap-2 text-sm text-[#94A3B8]">
               <span>💡</span>
-              <span>Strengthen your technical skills</span>
+              <span>"Start your Semester 4 learning journey"</span>
             </div>
-
           </div>
 
         </div>
